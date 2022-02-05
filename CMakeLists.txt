@@ -3,10 +3,9 @@ project(QuadroPhysX)
 
 set(CMAKE_CXX_STANDARD 14)
 
-file(GLOB SRC_FILES src/*.cpp)
-
 include_directories(include)
-add_executable(QuadroPhysX main.cpp)
+file(GLOB SRC_FILES src/*.cpp)
+add_executable(QuadroPhysX main.cpp ${SRC_FILES})
 
 #### Build PhysX library ####
 # PHYSX_PATH - path to the `{cloned repository}/physx` repo directory git://github.com/NVIDIAGameWorks/PhysX.git
