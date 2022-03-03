@@ -1,10 +1,12 @@
-cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.16)
 project(QuadroPhysX)
 
 set(CMAKE_CXX_STANDARD 14)
+add_compile_definitions(NDEBUG)
 
 include_directories(include)
-file(GLOB SRC_FILES src/*.cpp)
+file(GLOB SRC_FILES src/*.cpp src/task/*.cpp)
+
 add_executable(QuadroPhysX main.cpp ${SRC_FILES})
 
 #### Build PhysX library ####
@@ -41,3 +43,18 @@ add_subdirectory($ENV{PHYSX_PATH}/compiler/public externals/physx)
 
 # Add physx libraries to target
 target_link_libraries(QuadroPhysX PUBLIC ${PHYSX_LIBRARIES})
+
+#if (TARGET_BUILD_PLATFORM STREQUAL "windows")
+#    # References NvidiaBuildOptions.cmake to figure out if system is 32/64 bit
+#    IF(CMAKE_SIZEOF_VOID_P EQUAL 8)
+#        SET(LIBPATH_SUFFIX "64")
+#    ELSE()
+#        SET(LIBPATH_SUFFIX "32")
+#    ENDIF()
+#    GetPlatformBinName(PLATFORM_BIN_NAME ${LIBPATH_SUFFIX})
+#    set(PhysxOutputPath ${PX_OUTPUT_LIB_DIR}/bin/${PLATFORM_BIN_NAME}/)
+#    message("Physx Output Path: " ${PhysxOutputPath})
+#
+#    # copy PhysX dll's to build dir. Happens on every build.
+#    add_custom_command(TARGET QuadroPhysX POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory "${PhysxOutputPath}" "$<TARGET_FILE_DIR:QuadroPhysX>/cmake-build-profile-visual-studio")
+#endif()

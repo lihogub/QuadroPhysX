@@ -4,4 +4,4 @@ cmake-build-*
 !include/*
 !src
 !src/*
-!main.cpp
+

@@ -1,5 +1,4 @@
 #include "Robot.h"
-#include <PxPhysicsAPI.h>
 #include <iostream>
 
 quadrophysx::Robot::Robot(physx::PxPhysics *physics, physx::PxScene *scene, quadrophysx::RobotConfig &config) {
@@ -9,7 +8,7 @@ quadrophysx::Robot::Robot(physx::PxPhysics *physics, physx::PxScene *scene, quad
     _robotConfig = config;
 
     /* compute positions */
-    float h = 50;
+    float h = 49.5;
 
     physx::PxTransform rootTransform = physx::PxTransform(physx::PxIdentity)
             .transform(
@@ -189,7 +188,6 @@ quadrophysx::Robot::Robot(physx::PxPhysics *physics, physx::PxScene *scene, quad
         _joints[legIndex][1]->setMotion(physx::PxArticulationAxis::eTWIST, physx::PxArticulationMotion::eLIMITED);
         _joints[legIndex][1]->setLimit(physx::PxArticulationAxis::eTWIST, ll2, lu2);
         _joints[legIndex][1]->setDrive(physx::PxArticulationAxis::eTWIST, st2, damp2, mf2);
-        _joints[legIndex][1]->setMaxJointVelocity(0.5);
 
         _joints[legIndex][2] = static_cast<physx::PxArticulationJointReducedCoordinate *>(_links[legIndex][2]->getInboundJoint());
         _joints[legIndex][2]->setParentPose(joint02ParentTransform);
@@ -200,13 +198,12 @@ quadrophysx::Robot::Robot(physx::PxPhysics *physics, physx::PxScene *scene, quad
         _joints[legIndex][2]->setDrive(physx::PxArticulationAxis::eTWIST, st3, damp3, mf3);
     }
 
-
     scene->addArticulation(*_articulation);
-    _cache = _articulation->createCache();
 
     _robotState = new RobotState();
 
     initJointIndexes();
+    mMaterial->release();
 }
 
 void quadrophysx::Robot::updateRobotState() {
@@ -245,10 +242,10 @@ void quadrophysx::Robot::updateRobotState() {
 
 void quadrophysx::Robot::initJointIndexes() {
     physx::PxU32 TotalLinkCount = 13;
-    physx::PxU32* dofStarts = new physx::PxU32[TotalLinkCount];
+    physx::PxU32 *dofStarts = new physx::PxU32[TotalLinkCount];
     dofStarts[0] = 0;
 
-    for(int legIndex = 0; legIndex < 4; legIndex++) {
+    for (int legIndex = 0; legIndex < 4; legIndex++) {
         for (int linkIndex = 0; linkIndex < 3; linkIndex++) {
             physx::PxU32 llIndex = _links[legIndex][linkIndex]->getLinkIndex();
             physx::PxU32 dofs = _links[legIndex][linkIndex]->getInboundJointDof();
@@ -257,14 +254,13 @@ void quadrophysx::Robot::initJointIndexes() {
     }
 
     physx::PxU32 count = 0;
-    for(physx::PxU32 i = 1; i < TotalLinkCount; ++i)
-    {
+    for (physx::PxU32 i = 1; i < TotalLinkCount; ++i) {
         physx::PxU32 dofs = dofStarts[i];
         dofStarts[i] = count;
         count += dofs;
     }
 
-    for(int legIndex = 0; legIndex < 4; legIndex++) {
+    for (int legIndex = 0; legIndex < 4; legIndex++) {
         for (int linkIndex = 0; linkIndex < 3; linkIndex++) {
             _jointsIndexes[legIndex][linkIndex] = dofStarts[_links[legIndex][linkIndex]->getLinkIndex()];
         }
@@ -273,11 +269,24 @@ void quadrophysx::Robot::initJointIndexes() {
     delete[] dofStarts;
 }
 
-void quadrophysx::Robot::setTargetPositionAndVelocity(int legIndex, int jointIndex, float position,float velocity) {
-    if (legIndex % 2) {
-        position *= -1;
+void quadrophysx::Robot::setTargetPosition(int legIndex, int jointIndex, float position) {
+
+    if (position > 1.0) {
+        position = 1.0;
+    } else if (position < 0.0) {
+        position = 0.0;
     }
 
-    _joints[legIndex][jointIndex]->setDriveVelocity(physx::PxArticulationAxis::eTWIST, velocity);
-    _joints[legIndex][jointIndex]->setDriveTarget(physx::PxArticulationAxis::eTWIST,  position);
+    if (legIndex % 2 && jointIndex != 0) {
+        position = 1 - position;
+    }
+
+    float pos = _robotConfig.joints[legIndex][jointIndex].limitLower
+                + position * (_robotConfig.joints[legIndex][jointIndex].limitUpper -
+                              _robotConfig.joints[legIndex][jointIndex].limitLower);
+    _joints[legIndex][jointIndex]->setDriveTarget(physx::PxArticulationAxis::eTWIST, pos);
+}
+
+void quadrophysx::Robot::createCache() {
+    _cache = _articulation->createCache();
 }

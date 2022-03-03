@@ -2,6 +2,9 @@
 #define QUADROPHYSX_ROBOTSTATE_H
 
 
+#include <PxPhysicsAPI.h>
+
+
 namespace quadrophysx {
 
     struct JointState {
