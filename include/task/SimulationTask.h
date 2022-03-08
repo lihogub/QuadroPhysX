@@ -27,6 +27,7 @@ namespace quadrophysx {
         physx::PxScene *_scene;
         quadrophysx::Robot *_robot;
         quadrophysx::RobotConfig *_robotConfig;
+        double _noise = 0.0;
     public:
 
         SimulationTask(int id, size_t epochs, float elapsedTime, quadrophysx::Strategy *strategy, quadrophysx::RobotConfig *robotConfig);

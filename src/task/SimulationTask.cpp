@@ -27,8 +27,13 @@ size_t quadrophysx::SimulationTask::onFirstRun() {
 
     _robot = new Robot(_physics, _scene, *_robotConfig);
 
+    _robot->createCache();
+    _robot->updateRobotState();
+
     _scene->simulate(_elapsedTime);
     ++_epoch;
+
+    _noise = 0.0;
 
     _status = RUNNING;
 
@@ -37,17 +42,17 @@ size_t quadrophysx::SimulationTask::onFirstRun() {
 
 size_t quadrophysx::SimulationTask::onBeforeRun() {
 
-
     for (int leg = 0; leg < 4; leg++) {
         for (int joint = 0; joint < 3; joint++) {
 
             double val = 0.0;
-            double x = 4.0 * _epoch / _epochs * physx::PxTwoPi;
+            double x = 2.0 * _epoch / _epochs * physx::PxTwoPi;
             for (int n = 1; n < 4; n++) {
-                val += sin(x * n) * _strategy[n-1].value[leg][joint];
+                val += sin(x * n) * _strategy[n - 1].value[leg][joint];
             }
             val /= 3;
-            _robot->setTargetPosition(leg, joint, (val + 1) / 2.0);
+            val = (val + 1) / 2.0;
+            _robot->setTargetPosition(leg, joint, val);
         }
     }
 
@@ -57,8 +62,21 @@ size_t quadrophysx::SimulationTask::onBeforeRun() {
 size_t quadrophysx::SimulationTask::onRun() {
 
     if (_scene->fetchResults(false)) {
+
+
+        _robot->updateRobotState();
+
+        double q = 0;
+        q += pow(_robot->getRobotState()->rootLink.transform.q.x, 2);
+        q += pow(_robot->getRobotState()->rootLink.transform.q.y, 2);
+        q += pow(_robot->getRobotState()->rootLink.transform.q.z, 2);
+        q += pow(_robot->getRobotState()->rootLink.transform.q.w - 1, 2);
+
+        _noise += sqrt(q) / _epochs;
+
         _scene->simulate(_elapsedTime);
         ++_epoch;
+
         return 1;
     }
 
@@ -72,9 +90,9 @@ size_t quadrophysx::SimulationTask::onAfterRun() {
 size_t quadrophysx::SimulationTask::onFinish() {
     _scene->fetchResults(true);
 
-    _robot->createCache();
-    _robot->updateRobotState();
     _scene->release();
+
+    _robot->updateRobotState();
 
     return 0;
 
@@ -82,10 +100,9 @@ size_t quadrophysx::SimulationTask::onFinish() {
 
 double quadrophysx::SimulationTask::getResult() const {
     double s = 0;
-
     s += _robot->getRobotState()->rootLink.transform.p.x;
-    s -= abs(_robot->getRobotState()->rootLink.transform.p.y - 50);
-    s -= abs(_robot->getRobotState()->rootLink.transform.p.z);
+    s -= pow(_robot->getRobotState()->rootLink.transform.p.y - 49.5, 4);
+    s -= pow(_robot->getRobotState()->rootLink.transform.p.z, 4);
 
     double q = 0;
     q += pow(_robot->getRobotState()->rootLink.transform.q.x, 2);
@@ -93,7 +110,7 @@ double quadrophysx::SimulationTask::getResult() const {
     q += pow(_robot->getRobotState()->rootLink.transform.q.z, 2);
     q += pow(_robot->getRobotState()->rootLink.transform.q.w - 1, 2);
 
-    return s * (1 - q);
+    return s * pow(1 - q, 16) / pow(1 + _noise, 16);
 }
 
 quadrophysx::Strategy *quadrophysx::SimulationTask::getStrategy() const {

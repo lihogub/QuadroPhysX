@@ -10,15 +10,15 @@ quadrophysx::Core::Core(size_t coreId, std::mutex *coreMutex, physx::PxFoundatio
     mToleranceScale.length = 100;
     mToleranceScale.speed = 981;
 
-    physx::PxPvd *mPvd = PxCreatePvd(*_foundation);
+    physx::PxPvd *mPvd;
+
+#ifndef RELEASE
+    mPvd = PxCreatePvd(*_foundation);
     physx::PxPvdTransport* transport = physx::PxDefaultPvdSocketTransportCreate("127.0.0.1", 5425, 10);
     mPvd->connect(*transport, physx::PxPvdInstrumentationFlag::eALL);
-
-    _physics = PxCreatePhysics(PX_PHYSICS_VERSION, *_foundation, mToleranceScale, true, mPvd);
+#endif
+    _physics = PxCreatePhysics(PX_PHYSICS_VERSION, *_foundation, mToleranceScale, false, mPvd);
     PxInitExtensions(*_physics, mPvd);
-
-//    _physics = PxCreatePhysics(PX_PHYSICS_VERSION, *_foundation, mToleranceScale, false, nullptr);
-//    PxInitExtensions(*_physics, nullptr);
 
     _sceneDesc = new physx::PxSceneDesc(_physics->getTolerancesScale());
     _sceneDesc->gravity = physx::PxVec3(0.0f, -9.81f, 0.0f);

@@ -4,6 +4,10 @@ project(QuadroPhysX)
 set(CMAKE_CXX_STANDARD 14)
 add_compile_definitions(NDEBUG)
 
+if (CMAKE_BUILD_TYPE STREQUAL "Release")
+    add_compile_definitions(RELEASE)
+endif()
+
 include_directories(include)
 file(GLOB SRC_FILES src/*.cpp src/task/*.cpp)
 
