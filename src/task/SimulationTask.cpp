@@ -47,10 +47,13 @@ size_t quadrophysx::SimulationTask::onBeforeRun() {
 
             double val = 0.0;
             double x = 2.0 * _epoch / _epochs * physx::PxTwoPi;
-            for (int n = 1; n < 4; n++) {
+            for (int n = 1; n <= 3; n++) {
                 val += sin(x * n) * _strategy[n - 1].value[leg][joint];
             }
-            val /= 3;
+
+            val = (val > 1) ? 1 : val;
+            val = (val < -1) ? -1 : val;
+
             val = (val + 1) / 2.0;
             _robot->setTargetPosition(leg, joint, val);
         }
@@ -72,7 +75,7 @@ size_t quadrophysx::SimulationTask::onRun() {
         q += pow(_robot->getRobotState()->rootLink.transform.q.z, 2);
         q += pow(_robot->getRobotState()->rootLink.transform.q.w - 1, 2);
 
-        _noise += sqrt(q) / _epochs;
+        _noise += sqrt(q);
 
         _scene->simulate(_elapsedTime);
         ++_epoch;
@@ -101,16 +104,10 @@ size_t quadrophysx::SimulationTask::onFinish() {
 double quadrophysx::SimulationTask::getResult() const {
     double s = 0;
     s += _robot->getRobotState()->rootLink.transform.p.x;
-    s -= pow(_robot->getRobotState()->rootLink.transform.p.y - 49.5, 4);
-    s -= pow(_robot->getRobotState()->rootLink.transform.p.z, 4);
+    s -= pow(_robot->getRobotState()->rootLink.transform.p.y - 49.5, 2);
+    s -= pow(_robot->getRobotState()->rootLink.transform.p.z, 2);
 
-    double q = 0;
-    q += pow(_robot->getRobotState()->rootLink.transform.q.x, 2);
-    q += pow(_robot->getRobotState()->rootLink.transform.q.y, 2);
-    q += pow(_robot->getRobotState()->rootLink.transform.q.z, 2);
-    q += pow(_robot->getRobotState()->rootLink.transform.q.w - 1, 2);
-
-    return s * pow(1 - q, 16) / pow(1 + _noise, 16);
+    return s / pow(1 + _noise, 2);
 }
 
 quadrophysx::Strategy *quadrophysx::SimulationTask::getStrategy() const {

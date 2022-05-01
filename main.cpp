@@ -55,8 +55,6 @@ void init(quadrophysx::Strategy *servoConfig, size_t count) {
             }
         }
     }
-
-
 }
 
 bool comp(quadrophysx::SimulationTask *task1, quadrophysx::SimulationTask *task2) {
@@ -64,8 +62,13 @@ bool comp(quadrophysx::SimulationTask *task1, quadrophysx::SimulationTask *task2
 }
 
 void mutate(quadrophysx::Strategy *strategy, size_t frequencies) {
-    for (int k = 0; k < frequencies; k++)
-        strategy[k].value[rand() % 4][rand() % 3] += ((rand() % 101) - 50) / 500.0;
+    for (int k = 0; k < frequencies; k++) {
+        for (int leg = 0; leg < 4; leg++) {
+            for (int link = 0; link < 3; link++){
+                strategy[k].value[leg][link] += ((rand() % 101) - 50) / 500.0;
+            }
+        }
+    }
 }
 
 void initStrategyFromFile(quadrophysx::Strategy *strategy, size_t frequencies) {
@@ -95,7 +98,7 @@ void saveToFile(quadrophysx::Strategy *strategy, size_t frequencies) {
 
 int main(int argc, char *argv[]) {
     quadrophysx::RobotConfig robotConfig = getRobotConfig();
-    size_t epochs = 5000;
+    size_t epochs = 500;
     size_t frequencies = 3;
 #if RELEASE
     std::cout << "release" << std::endl;
@@ -104,8 +107,8 @@ int main(int argc, char *argv[]) {
     hypervisor->run();
     srand(time(nullptr));
 
-    size_t taskCount = 100;
-    int edenCount = 5;
+    size_t taskCount = 128;
+    int edenCount = 4;
     auto *map = new std::map<int, quadrophysx::Strategy *>();
     for (int i = 0; i < taskCount; i++) {
         quadrophysx::Strategy *strategy = new quadrophysx::Strategy[frequencies];
@@ -115,12 +118,12 @@ int main(int argc, char *argv[]) {
 
     for (int i = 0; i < taskCount; i++) {
         quadrophysx::Strategy *strategy = map->at(i);
-        auto *task = new quadrophysx::SimulationTask(i, epochs, 1.0f / 100.0f, strategy, &robotConfig);
+        auto *task = new quadrophysx::SimulationTask(i, epochs, 1.0f / 10.0f, strategy, &robotConfig);
         hypervisor->submitTask(task);
     }
 
     size_t last = 0;
-    size_t deltaTime = 1000;
+    size_t deltaTime = 5000;
 
     while (true) {
         hypervisor->spin(deltaTime);
@@ -184,7 +187,7 @@ int main(int argc, char *argv[]) {
     quadrophysx::Strategy *strategy = new quadrophysx::Strategy[frequencies];
     initStrategyFromFile(strategy, frequencies);
 
-    auto *task1 = new quadrophysx::SimulationTask(0, epochs, 1.0f / 100.0f, strategy, &robotConfig);
+    auto *task1 = new quadrophysx::SimulationTask(0, epochs, 1.0f / 10.0f, strategy, &robotConfig);
     hypervisor->submitTask(task1);
 
     while (hypervisor->getFinishedTasksQueueSize() != 1) {
